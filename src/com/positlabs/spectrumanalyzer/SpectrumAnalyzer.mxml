@@ -112,8 +112,6 @@
 
 			private function peakHandler(e : Event) : void {
 				var p : int = channel.position;
-				trace('p: ' + (p));
-				
 				peakData[p] = {"left":channel.leftPeak, "right":channel.rightPeak};
 			}
 
