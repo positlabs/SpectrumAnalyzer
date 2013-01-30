@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
+	xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="955"
+	minHeight="600" creationComplete="init()">
+	<fx:Script>
+		<![CDATA[
+			import com.adobe.serialization.json.JSON;
+
+			import org.audiofx.mp3.MP3FileReferenceLoader;
+			import org.audiofx.mp3.MP3SoundEvent;
+
+			private var sound : Sound;
+			private var channel : SoundChannel;
+			// ** @see http://www.emanuelz.com.mx/blog/parsing-local-mp3-with-filereference-and-audiofx-library-106 */
+			private var mp3loader : MP3FileReferenceLoader;
+			private var f : FileReference;
+			private var filter : FileFilter = new FileFilter("mp3: (*.mp3)", "*.mp3");
+
+			private function init() : void {
+				trace("SpectrumAnalyzer.init()");
+				channel = new SoundChannel();
+				sound = new Sound(new URLRequest("sounds/one-meatball.mp3"));
+			}
+
+			private function browse() : void {
+				trace("SpectrumAnalyzer.load()");
+				f = new FileReference();
+				f.addEventListener(Event.SELECT, onSelect);
+				f.browse([filter]);
+			}
+
+			private function onSelect(event : Event) : void {
+				trace("SpectrumAnalyzer.onSelect(event)");
+				f = event.target as FileReference;
+				f.removeEventListener(Event.SELECT, onSelect);
+
+				// instance of the mp3 parser
+				mp3loader = new MP3FileReferenceLoader();
+				// Listen when the parsing is complete
+				mp3loader.addEventListener(MP3SoundEvent.COMPLETE, parseComplete);
+				// start parsing directly from the FileReference instance
+				mp3loader.getSound(f);
+			}
+
+			private function parseComplete(e : MP3SoundEvent) : void {
+				trace("SpectrumAnalyzer.parseComplete(e)");
+				mp3loader.removeEventListener(MP3SoundEvent.COMPLETE, parseComplete);
+				sound = e.sound;
+				play();
+			}
+
+			private function play() : void {
+				trace("SpectrumAnalyzer.play()");
+				resetTracking();
+				channel.stop();
+				
+				addEventListener(Event.ENTER_FRAME, tick);
+
+				if (spectrumChkbox.selected) addEventListener(Event.ENTER_FRAME, spectrumHandler);
+				else removeEventListener(Event.ENTER_FRAME, spectrumHandler);
+
+				if (peakChkbox.selected) addEventListener(Event.ENTER_FRAME, peakHandler);
+				else removeEventListener(Event.ENTER_FRAME, peakHandler);
+
+				channel = sound.play();
+			}
+
+			private function tick(event : Event) : void {
+				trace('sound.length: ' + (sound.length));
+				if (channel.position >= sound.length) stop();
+				
+			}
+
+			private function stop():void{
+				channel.stop();
+				removeEventListener(Event.ENTER_FRAME, tick);
+				removeEventListener(Event.ENTER_FRAME, spectrumHandler);
+				removeEventListener(Event.ENTER_FRAME, peakHandler);
+			}
+
+			private var spectrumData : Object;
+			private var peakData : Object;
+			private var ba : ByteArray = new ByteArray();
+
+			private function resetTracking() : void {
+				trace("SpectrumAnalyzer.resetTracking()");
+				spectrumData = {};
+				peakData = {};
+			}
+
+			/*
+			 *  spectrum data structure
+			 *  spectrumData[millis] = {"left":[0, 0, 0,...]. "right":[0,0,0,...]}
+			 *  
+			 */
+			private function spectrumHandler(event : Event) : void {
+				// push the spectrum's bytes into the ByteArray
+				SoundMixer.computeSpectrum(ba, fftChkbox.selected);
+
+				var p : int = channel.position;
+				trace('channel.position: ' + (p));
+				spectrumData[p] = {};
+				spectrumData[p]["right"] = [];
+				spectrumData[p]["left"] = [];
+				for (var i : uint = 0; i < 256; i++) {
+					 spectrumData[p]["left"].push(ba.readFloat());
+				}
+				for (var j : uint = 0; j < 256; j++) {
+					 spectrumData[p]["right"].push(ba.readFloat());
+				}
+			}
+
+			private function peakHandler(e : Event) : void {
+				var p : int = channel.position;
+				trace('p: ' + (p));
+				
+				peakData[p] = {"left":channel.leftPeak, "right":channel.rightPeak};
+			}
+
+			private function getSpectrumData() : String {
+				return com.adobe.serialization.json.JSON.encode(spectrumData);
+			}
+			
+			private function getPeakData() : String {
+				return com.adobe.serialization.json.JSON.encode(peakData);
+			}
+
+
+		]]>
+	</fx:Script>
+
+	<s:VGroup top="10" left="10">
+		<s:Label text="check boxes to track data or apply fft, then press the play button"/>
+		<s:VGroup>
+			<s:Button label="play" click="play()"/>
+			<s:Button label="stop" click="stop()"/>
+			<s:Button label="load sound" id="uploadBtn" click="browse()"/>
+		</s:VGroup>
+		<s:VGroup>
+			<s:CheckBox label="spectrum data (sound wave)" id="spectrumChkbox" selected="true"/>
+			<s:CheckBox label="fft (output frequencies in spectrum data)"
+				id="fftChkbox" selected="true"/>
+			<s:CheckBox label="peak" id="peakChkbox"/>
+			<s:Button label="copy spectrum data" click="System.setClipboard(getSpectrumData())"/>
+			<s:Button label="copy peak data" click="System.setClipboard(getPeakData())"/>
+		</s:VGroup>
+	</s:VGroup>
+
+</s:Application>
