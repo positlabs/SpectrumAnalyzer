@@ -3,11 +3,12 @@ SpectrumAnalyzer
 
 Sound data utility that exports json.
 
-Use it: http://positlabs.com/files/code/spectrum-analyzer/
+Use it: <a href="http://positlabs.com/files/code/spectrum-analyzer/">ANALYZE SOME STUFF</a>
 
 Instead of analyzing a sound at runtime (which isn't possible in all cases anyway), we can export the data beforehand. It frees up cpu power for awesome vizualizers and stuff!
 
 This is a work in progress. Still haven't actually used the data for anything, so I might add a couple of parsing features or change how the keys are assigned.
+
 
 How to
 ================
