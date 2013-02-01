@@ -17,9 +17,11 @@ How to
 
 2. Load an mp3 file by clicking the 'load sound' button.
 
-3. Play the song and let it run through to the end.
+3. Pick a value for the sample interval. This will determine how often the data is updated. 
 
-4. Pressing the 'copy data' buttons will copy a json object to your clipboard.
+4. Play the song and let it run through to the end.
+
+5. Pressing the 'copy data' buttons will copy a json object to your clipboard.
 
 
 Spectrum data structure
@@ -27,7 +29,7 @@ Spectrum data structure
 Keys for the data are the timestamp of when the sample was taken. Left / right are channels with 256 normalized values. If FFT is active, these values are frequencies - if not, they are sound-wave data.
 		
 {millis:
-	{"left":[256], "right":[256]}
+	{"l":[256], "r":[256]}
 }
 
 
@@ -36,7 +38,7 @@ Peak data structure
 Same structure, but only one value per channel.
 
 {millis:
-	{"left":[x], "right":[x]}
+	{"l":[x], "r":[x]}
 }
 
 

@@ -99,19 +99,19 @@
 
 				var p : int = Math.round(channel.position/sampleInterval) * sampleInterval;
 				spectrumData[p] = {};
-				spectrumData[p]["right"] = [];
-				spectrumData[p]["left"] = [];
+				spectrumData[p]["l"] = [];
+				spectrumData[p]["r"] = [];
 				for (var i : uint = 0; i < 256; i++) {
-					 spectrumData[p]["left"].push(ba.readFloat());
+					 spectrumData[p]["l"].push(ba.readFloat());
 				}
 				for (var j : uint = 0; j < 256; j++) {
-					 spectrumData[p]["right"].push(ba.readFloat());
+					 spectrumData[p]["r"].push(ba.readFloat());
 				}
 			}
 
 			private function peakHandler(e : Event) : void {
 				var p : int = Math.round(channel.position/sampleInterval) * sampleInterval;
-				peakData[p] = {"left":channel.leftPeak, "right":channel.rightPeak};
+				peakData[p] = {"l":channel.leftPeak, "r":channel.rightPeak};
 			}
 
 			private function getSpectrumData() : String {
