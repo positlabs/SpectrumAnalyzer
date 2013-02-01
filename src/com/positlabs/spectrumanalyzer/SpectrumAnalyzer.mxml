@@ -15,6 +15,8 @@
 			private var mp3loader : MP3FileReferenceLoader;
 			private var f : FileReference;
 			private var filter : FileFilter = new FileFilter("mp3: (*.mp3)", "*.mp3");
+			
+			private var sampleInterval : int = 100;
 
 			private function init() : void {
 				trace("SpectrumAnalyzer.init()");
@@ -66,9 +68,7 @@
 			}
 
 			private function tick(event : Event) : void {
-				trace('sound.length: ' + (sound.length));
 				if (channel.position >= sound.length) stop();
-				
 			}
 
 			private function stop():void{
@@ -97,8 +97,7 @@
 				// push the spectrum's bytes into the ByteArray
 				SoundMixer.computeSpectrum(ba, fftChkbox.selected);
 
-				var p : int = channel.position;
-				trace('channel.position: ' + (p));
+				var p : int = Math.round(channel.position/sampleInterval) * sampleInterval;
 				spectrumData[p] = {};
 				spectrumData[p]["right"] = [];
 				spectrumData[p]["left"] = [];
@@ -111,7 +110,7 @@
 			}
 
 			private function peakHandler(e : Event) : void {
-				var p : int = channel.position;
+				var p : int = Math.round(channel.position/sampleInterval) * sampleInterval;
 				peakData[p] = {"left":channel.leftPeak, "right":channel.rightPeak};
 			}
 
@@ -139,6 +138,10 @@
 			<s:CheckBox label="fft (output frequencies in spectrum data)"
 				id="fftChkbox" selected="true"/>
 			<s:CheckBox label="peak" id="peakChkbox"/>
+			<s:HGroup>
+				<s:Label text="sample interval"/>
+				<s:HSlider minimum="10" maximum="1000" snapInterval="10" id="keyIntervalSlider" changeEnd="sampleInterval = keyIntervalSlider.value" width="400"/>
+			</s:HGroup>
 			<s:Button label="copy spectrum data" click="System.setClipboard(getSpectrumData())"/>
 			<s:Button label="copy peak data" click="System.setClipboard(getPeakData())"/>
 		</s:VGroup>
