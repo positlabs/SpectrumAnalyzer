@@ -121,6 +121,11 @@
 			private function getPeakData() : String {
 				return com.adobe.serialization.json.JSON.encode(peakData);
 			}
+			
+			private function save(name: String, json:String):void{
+				var f : FileReference = new FileReference();
+				f.save(json, name);
+			}
 
 
 		]]>
@@ -140,10 +145,10 @@
 			<s:CheckBox label="peak" id="peakChkbox"/>
 			<s:HGroup>
 				<s:Label text="sample interval"/>
-				<s:HSlider minimum="10" maximum="1000" snapInterval="10" id="keyIntervalSlider" changeEnd="sampleInterval = keyIntervalSlider.value" width="400"/>
+				<s:HSlider minimum="10" value="100" maximum="1000" snapInterval="10" id="keyIntervalSlider" changeEnd="sampleInterval = keyIntervalSlider.value" width="400"/>
 			</s:HGroup>
-			<s:Button label="copy spectrum data" click="System.setClipboard(getSpectrumData())"/>
-			<s:Button label="copy peak data" click="System.setClipboard(getPeakData())"/>
+			<s:Button label="save spectrum data" click="save('spectrumdata.json', getSpectrumData())"/>
+			<s:Button label="save peak data" click="save('peakdata.json', getPeakData())"/>
 		</s:VGroup>
 	</s:VGroup>
 
