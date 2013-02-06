@@ -131,8 +131,12 @@
 				f.save(json, name);
 			}
 
+			private var spectrumSprite : Sprite;
+
 			private function graphSpectrumData() : void {
-				var g : Graphics = spectrumgraph.graphics;
+				spectrumgraph.removeChildren();
+				spectrumgraph.addChild(spectrumSprite = new Sprite());
+				var g : Graphics = spectrumSprite.graphics;
 				g.clear();
 
 				for (var key : String in spectrumData) {
@@ -161,8 +165,13 @@
 				}
 			}
 
+			private var peakSprite : Sprite;
+
 			private function graphPeakData() : void {
-				var g : Graphics = peakgraph.graphics;
+				peakgraph.removeChildren();
+				peakgraph.addChild(peakSprite = new Sprite());
+
+				var g : Graphics = peakSprite.graphics;
 				g.clear();
 
 				for (var key : String in peakData) {
@@ -176,8 +185,14 @@
 					g.endFill();
 				}
 			}
+
+			private function moveGraphs() : void {
+				if (peakSprite) peakSprite.x = -(peakSprite.width) * positionSlider.value * .01;
+				if (spectrumSprite) spectrumSprite.x = -(spectrumSprite.width) * positionSlider.value * .01;
+			}
 			
 			// TODO - add pause functionality
+			// TODO - add graph scrolling
 		]]>
 	</fx:Script>
 
@@ -232,6 +247,11 @@
 					<s:Label text="y scale" color="white"/>
 					<s:HSlider id="yscaleSlider" minimum=".2" value=".75"
 						snapInterval=".01" maximum="3"/>
+				</s:HGroup>
+				<s:HGroup>
+					<s:Label text="position" color="white"/>
+					<s:HSlider id="positionSlider" minimum="0" value="0"
+						snapInterval=".1" maximum="100" change="moveGraphs()"/>
 				</s:HGroup>
 			</s:HGroup>
 			<s:SpriteVisualElement id="spectrumgraph" height="256"
