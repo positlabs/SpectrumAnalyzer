@@ -17,7 +17,7 @@ How to
 
 2. Load an mp3 file by clicking the 'load sound' button.
 
-3. Pick a value for the sample interval. This will determine how often the data is updated. 
+3. Pick a value for the sample interval (100ms is pretty good). This will determine how often the data is updated. 
 
 4. Play the song and let it run through to the end.
 

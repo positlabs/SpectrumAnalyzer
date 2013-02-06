@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <s:Application xmlns:fx="http://ns.adobe.com/mxml/2009" xmlns:s="library://ns.adobe.com/flex/spark"
 	xmlns:mx="library://ns.adobe.com/flex/mx" minWidth="955"
-	minHeight="600" creationComplete="init()">
+	minHeight="600" creationComplete="init()" backgroundColor="black">
 	<fx:Script>
 		<![CDATA[
 			import com.adobe.serialization.json.JSON;
@@ -15,7 +15,6 @@
 			private var mp3loader : MP3FileReferenceLoader;
 			private var f : FileReference;
 			private var filter : FileFilter = new FileFilter("mp3: (*.mp3)", "*.mp3");
-			
 			private var sampleInterval : int = 100;
 
 			private function init() : void {
@@ -53,9 +52,10 @@
 
 			private function play() : void {
 				trace("SpectrumAnalyzer.play()");
+				currentState = 'playing';
 				resetTracking();
 				channel.stop();
-				
+
 				addEventListener(Event.ENTER_FRAME, tick);
 
 				if (spectrumChkbox.selected) addEventListener(Event.ENTER_FRAME, spectrumHandler);
@@ -68,14 +68,18 @@
 			}
 
 			private function tick(event : Event) : void {
-				if (channel.position >= sound.length) stop();
+				if (channel.position >= sound.length - sampleInterval * .5) stop();
 			}
 
-			private function stop():void{
+			private function stop() : void {
+				currentState = 'stopped';
 				channel.stop();
 				removeEventListener(Event.ENTER_FRAME, tick);
 				removeEventListener(Event.ENTER_FRAME, spectrumHandler);
 				removeEventListener(Event.ENTER_FRAME, peakHandler);
+
+				if (peakChkbox.selected) graphPeakData();
+				if (spectrumChkbox.selected) graphSpectrumData();
 			}
 
 			private var spectrumData : Object;
@@ -97,59 +101,149 @@
 				// push the spectrum's bytes into the ByteArray
 				SoundMixer.computeSpectrum(ba, fftChkbox.selected);
 
-				var p : int = Math.round(channel.position/sampleInterval) * sampleInterval;
+				var p : int = Math.round(channel.position / sampleInterval) * sampleInterval;
 				spectrumData[p] = {};
 				spectrumData[p]["l"] = [];
 				spectrumData[p]["r"] = [];
 				for (var i : uint = 0; i < 256; i++) {
-					 spectrumData[p]["l"].push(ba.readFloat());
+					spectrumData[p]["l"].push(ba.readFloat());
 				}
 				for (var j : uint = 0; j < 256; j++) {
-					 spectrumData[p]["r"].push(ba.readFloat());
+					spectrumData[p]["r"].push(ba.readFloat());
 				}
 			}
 
 			private function peakHandler(e : Event) : void {
-				var p : int = Math.round(channel.position/sampleInterval) * sampleInterval;
+				var p : int = Math.round(channel.position / sampleInterval) * sampleInterval;
 				peakData[p] = {"l":channel.leftPeak, "r":channel.rightPeak};
 			}
 
 			private function getSpectrumData() : String {
 				return com.adobe.serialization.json.JSON.encode(spectrumData);
 			}
-			
+
 			private function getPeakData() : String {
 				return com.adobe.serialization.json.JSON.encode(peakData);
 			}
-			
-			private function save(name: String, json:String):void{
+
+			private function save(name : String, json : String) : void {
 				var f : FileReference = new FileReference();
 				f.save(json, name);
 			}
 
+			private function graphSpectrumData() : void {
+				var g : Graphics = spectrumgraph.graphics;
+				g.clear();
 
+				for (var key : String in spectrumData) {
+					var barx : int = parseInt(key) / sampleInterval;
+					var ldata : Array = spectrumData[key].l as Array;
+					var rdata : Array = spectrumData[key].r as Array;
+
+					if (fftChkbox.selected)
+						for (var i : int = 0; i < ldata.length; i++) {
+							g.beginFill(0x0000bb, ldata[i]);
+							g.drawRect(barx, spectrumgraph.height - i * .5, 1, 1);
+							g.endFill();
+							g.beginFill(0xbb0000, rdata[i]);
+							g.drawRect(barx, spectrumgraph.height - i * .5, 1, 1);
+							g.endFill();
+						}
+					else {
+						g.moveTo(barx * ldata.length * .5, .5);
+						for (var i : int = 0; i < ldata.length; i++) {
+							g.lineStyle(1, 0xff0000, .5);
+							g.lineTo(i * .5 + barx * ldata.length * .5, (ldata[i] + .5) * spectrumgraph.height);
+							g.lineStyle(1, 0x0000ff, .5);
+							g.lineTo(i * .5 + barx * rdata.length * .5, (rdata[i] + .5) * spectrumgraph.height);
+						}
+					}
+				}
+			}
+
+			private function graphPeakData() : void {
+				var g : Graphics = peakgraph.graphics;
+				g.clear();
+
+				for (var key : String in peakData) {
+					var barx : int = parseInt(key) / sampleInterval;
+					var lbarheight : int = peakData[key].l * peakgraph.height * .5;
+					var rbarheight : int = peakData[key].r * peakgraph.height * .5;
+
+					g.beginFill(0xffffff);
+					g.drawRect(barx, peakgraph.height * .5, 1, lbarheight);
+					g.drawRect(barx, peakgraph.height * .5 - rbarheight, 1, rbarheight);
+					g.endFill();
+				}
+			}
+			
+			// TODO - add pause functionality
 		]]>
 	</fx:Script>
 
-	<s:VGroup top="10" left="10">
-		<s:Label text="check boxes to track data or apply fft, then press the play button"/>
+	<s:states>
+		<s:State name="stopped"/>
+		<s:State name="playing"/>
+	</s:states>
+
+	<fx:Style>
+        @namespace s "library://ns.adobe.com/flex/spark";
+        s|CheckBox{
+        	color:white;
+        }
+	</fx:Style>
+
+	<s:VGroup top="10" left="10" gap="20">
+		<s:Label text="check boxes to track data or apply fft, then press the play button"
+			color="white"/>
 		<s:VGroup>
-			<s:Button label="play" click="play()"/>
-			<s:Button label="stop" click="stop()"/>
-			<s:Button label="load sound" id="uploadBtn" click="browse()"/>
+			<s:Button label="play" click="play()" enabled.playing="false"/>
+			<s:Button label="stop" click="stop()" enabled.stopped="false"/>
+			<s:Button label="load sound" id="uploadBtn" click="browse()"
+				enabled.playing="false"/>
 		</s:VGroup>
 		<s:VGroup>
-			<s:CheckBox label="spectrum data (sound wave)" id="spectrumChkbox" selected="true"/>
+			<s:CheckBox label="spectrum data (sound wave)" id="spectrumChkbox"
+				selected="true" enabled.playing="false"/>
 			<s:CheckBox label="fft (output frequencies in spectrum data)"
-				id="fftChkbox" selected="true"/>
-			<s:CheckBox label="peak" id="peakChkbox"/>
-			<s:HGroup>
-				<s:Label text="sample interval"/>
-				<s:HSlider minimum="10" value="100" maximum="1000" snapInterval="10" id="keyIntervalSlider" changeEnd="sampleInterval = keyIntervalSlider.value" width="400"/>
+				id="fftChkbox" selected="true" enabled.playing="false"/>
+			<s:CheckBox label="peak" id="peakChkbox" enabled.playing="false"/>
+			<s:HGroup enabled.playing="false">
+				<s:Label text="sample interval" color="white"/>
+				<s:HSlider minimum="10" value="100" maximum="1000"
+					snapInterval="10" id="keyIntervalSlider"
+					changeEnd="sampleInterval = keyIntervalSlider.value"
+					width="400"/>
 			</s:HGroup>
-			<s:Button label="save spectrum data" click="save('spectrumdata.json', getSpectrumData())"/>
-			<s:Button label="save peak data" click="save('peakdata.json', getPeakData())"/>
+			<s:Button label="save spectrum data" click="save('spectrumdata.json', getSpectrumData())"
+				enabled="{spectrumChkbox.selected}" enabled.playing="false"/>
+			<s:Button label="save peak data" click="save('peakdata.json', getPeakData())"
+				enabled="{peakChkbox.selected}" enabled.playing="false"/>
 		</s:VGroup>
+
+		<s:VGroup>
+			<s:HGroup gap="15">
+				<s:HGroup>
+					<s:Label text="x scale" color="white"/>
+					<s:HSlider id="xscaleSlider" minimum=".002" value=".75"
+						snapInterval=".001" maximum="3"/>
+				</s:HGroup>
+				<s:HGroup>
+					<s:Label text="y scale" color="white"/>
+					<s:HSlider id="yscaleSlider" minimum=".2" value=".75"
+						snapInterval=".01" maximum="3"/>
+				</s:HGroup>
+			</s:HGroup>
+			<s:SpriteVisualElement id="spectrumgraph" height="256"
+				width="100%" scaleX="{xscaleSlider.value}" scaleY="{yscaleSlider.value}"
+				includeInLayout="{spectrumChkbox.selected}" visible="{spectrumChkbox.selected}"/>
+			<s:Rect height="100" includeInLayout="{spectrumChkbox.selected}"
+				visible="{spectrumChkbox.selected}" scaleY="{yscaleSlider.value}"/>
+			<s:SpriteVisualElement id="peakgraph" height="256" width="100%"
+				scaleX="{xscaleSlider.value}" scaleY="{yscaleSlider.value}"
+				includeInLayout="{peakChkbox.selected}" visible="{peakChkbox.selected}"/>
+		</s:VGroup>
+
 	</s:VGroup>
 
 </s:Application>
